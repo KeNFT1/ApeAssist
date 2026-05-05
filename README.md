@@ -15,6 +15,7 @@ The current character/art direction is Lulo: a playful ape desktop companion wit
 - Notification permission/status controller with an explicit Settings button; permission is not requested automatically.
 - Risky-action confirmation scaffolding for external sends, browser/app clicks, file deletion, trading/financial actions, and config changes.
 - Setup/Settings flow for local OpenClaw or a remote Mac mini over Tailscale, with Gateway token storage in macOS Keychain.
+- Pairing-invite import for remote setup, so Ken can send an encrypted invite instead of sharing the raw Gateway token in chat.
 - `OpenClawBridge` + `OpenClawClient` seam for local OpenClaw/Gateway integration.
 
 ## Sprite sheet
@@ -237,8 +238,22 @@ For another Mac to use the Mac mini backend:
 2. Keep OpenClaw running on the Mac mini with `/v1/responses` enabled and token auth.
 3. Configure the Gateway to listen on the tailnet IP (`gateway.bind = "tailnet"`) **or** enable Tailscale Serve in your tailnet and use `gateway.tailscale.mode = "serve"`.
 4. In ApeAssist Settings choose **Mac mini over Tailscale**.
-5. Set the endpoint to the HTTPS MagicDNS URL if using Tailscale Serve, or `http://<tailscale-ip>:18789` for direct tailnet bind.
-6. Save the Gateway bearer token to Keychain and click **Check Gateway**.
+5. If no token is saved, use **Pair with Ken’s Pinchy** → **Enter pairing code**.
+6. Paste Ken’s ApeAssist invite, enter the passphrase if the invite is encrypted, click **Import Pairing Invite**, then click **Check Gateway**.
+
+Ken can create an encrypted invite without printing the raw token:
+
+```bash
+scripts/create-pairing-invite.sh --output ~/Desktop/apeassist-invite.txt
+```
+
+By default the script reads `~/.openclaw/openclaw.json` at runtime, uses endpoint `https://pinchys-mac-mini.taild71e14.ts.net/`, prompts for an OpenSSL passphrase, and writes a payload beginning with `APEASSIST-INVITE-ENC-v1:`. Share the passphrase over a different channel when possible. A clear base64 JSON invite is available only for last-resort/manual delivery:
+
+```bash
+scripts/create-pairing-invite.sh --cleartext --output ~/Desktop/apeassist-invite.txt
+```
+
+Clear invites contain the token after base64 decoding. Do not post either invite type publicly, commit it, or leave it in shared folders.
 
 
 Current Tailscale Serve endpoint for this Mac mini:
@@ -247,7 +262,7 @@ Current Tailscale Serve endpoint for this Mac mini:
 https://pinchys-mac-mini.taild71e14.ts.net/
 ```
 
-Tailscale encrypts tailnet traffic, but the HTTP API still requires the Gateway token. Do not expose this with Tailscale Funnel/public internet unless you intentionally harden auth and TLS.
+Tailscale encrypts tailnet traffic, but the HTTP API still requires the Gateway token. Pairing invites are just a safer delivery wrapper around that token until OpenClaw exposes a scoped token/pairing endpoint. Do not expose this with Tailscale Funnel/public internet unless you intentionally harden auth and TLS.
 
 Note: OpenClaw's `/v1/responses` endpoint is disabled by default. Enable the Gateway HTTP endpoint before turning on POST mode; do not put tokens in source:
 

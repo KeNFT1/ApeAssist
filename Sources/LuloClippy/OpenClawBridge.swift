@@ -219,7 +219,7 @@ enum SettingsKey {
     static let postingDefaultMigrated = "openclaw.postingDefaultMigrated"
 
     static let defaultEndpoint = "http://127.0.0.1:18789"
-    static let defaultRemoteEndpoint = "http://mac-mini.tailnet-name.ts.net:18789"
+    static let defaultRemoteEndpoint = "https://pinchys-mac-mini.taild71e14.ts.net/"
     static let defaultWebSocketURL = "ws://127.0.0.1:18789"
     static let defaultSession = "agent:main:clippy:local"
     static let defaultAgentTarget = "openclaw/default"

@@ -13,7 +13,10 @@ struct SettingsView: View {
     @AppStorage(SettingsKey.modelOverride) private var modelOverride = ""
     @AppStorage(SettingsKey.postingEnabled) private var postingEnabled = "true"
     @State private var tokenInput = ""
+    @State private var pairingInviteInput = ""
+    @State private var pairingPassphrase = ""
     @State private var tokenSaveMessage: String?
+    @State private var pairingMessage: String?
 
     var body: some View {
         Form {
@@ -43,6 +46,14 @@ struct SettingsView: View {
                     .textFieldStyle(.roundedBorder)
                 TextField("Model override (optional)", text: $modelOverride)
                     .textFieldStyle(.roundedBorder)
+                if bridge.configuration.bearerToken.isEmpty {
+                    PairingInviteImportView(
+                        inviteInput: $pairingInviteInput,
+                        passphrase: $pairingPassphrase,
+                        message: pairingMessage,
+                        importAction: importPairingInvite
+                    )
+                }
                 SecureField("Gateway bearer token", text: $tokenInput)
                     .textFieldStyle(.roundedBorder)
                 HStack {
@@ -55,7 +66,7 @@ struct SettingsView: View {
                             .foregroundStyle(tokenSaveMessage.contains("failed") ? .red : .secondary)
                     }
                 }
-                Text("Secrets are stored in macOS Keychain. Legacy UserDefaults tokens are migrated automatically; environment variable LULO_OPENCLAW_TOKEN still overrides for local dev.")
+                Text("Secrets are stored in macOS Keychain. Pairing invites import Ken's endpoint and save the Gateway token to Keychain; no real tokens are shipped in the app or source.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Toggle("Enable HTTP POST to /v1/responses", isOn: postingBinding)
@@ -160,6 +171,65 @@ struct SettingsView: View {
             tokenSaveMessage = "Removed saved token."
         } catch {
             tokenSaveMessage = "Remove failed: \(error.localizedDescription)"
+        }
+    }
+
+    private func importPairingInvite() {
+        do {
+            let invite = pairingPassphrase.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                ? try PairingInviteParser.decode(pairingInviteInput)
+                : try PairingInviteParser.decodeEncrypted(pairingInviteInput, passphrase: pairingPassphrase)
+            remoteEndpoint = invite.normalizedEndpoint
+            backendMode = OpenClawBackendMode.remoteTailscale.rawValue
+            if let session = invite.session, !session.isEmpty {
+                self.session = session
+            }
+            if let agentTarget = invite.agentTarget, !agentTarget.isEmpty {
+                self.agentTarget = agentTarget
+            }
+            try bridge.saveBearerToken(invite.token)
+            tokenInput = KeychainGatewayTokenStore().loadToken() ?? ""
+            pairingInviteInput = ""
+            pairingPassphrase = ""
+            let pairedLabel = invite.label ?? "Ken’s Pinchy"
+            pairingMessage = "Paired with \(pairedLabel). Click Check Gateway."
+            tokenSaveMessage = "Saved to Keychain."
+        } catch {
+            pairingMessage = error.localizedDescription
+        }
+    }
+}
+
+private struct PairingInviteImportView: View {
+    @Binding var inviteInput: String
+    @Binding var passphrase: String
+    let message: String?
+    let importAction: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label("Pair with Ken’s Pinchy", systemImage: "person.badge.key.fill")
+                .font(.headline)
+            Text("Enter pairing code")
+                .font(.subheadline)
+            TextEditor(text: $inviteInput)
+                .font(.system(.caption, design: .monospaced))
+                .frame(minHeight: 76)
+                .overlay(RoundedRectangle(cornerRadius: 6).stroke(.quaternary))
+            SecureField("Invite passphrase (if Ken protected it)", text: $passphrase)
+                .textFieldStyle(.roundedBorder)
+            HStack {
+                Button("Import Pairing Invite") { importAction() }
+                    .disabled(inviteInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                if let message {
+                    Text(message)
+                        .font(.caption)
+                        .foregroundStyle(message.lowercased().contains("failed") || message.lowercased().contains("invalid") || message.lowercased().contains("missing") ? .red : .secondary)
+                }
+            }
+            Text("Ask Ken for a short ApeAssist invite. It configures the Mac mini Tailscale endpoint and stores the Gateway token in Keychain.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 }

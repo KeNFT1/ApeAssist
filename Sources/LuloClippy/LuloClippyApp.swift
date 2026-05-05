@@ -28,7 +28,7 @@ struct LuloClippyApp: App {
             SettingsView()
                 .environmentObject(appDelegate.bridge)
                 .environmentObject(appDelegate.appState)
-                .frame(width: 560, height: 460)
+                .frame(width: 620, height: 620)
         }
     }
 }

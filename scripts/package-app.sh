@@ -67,6 +67,7 @@ PLIST
 
 if command -v codesign >/dev/null 2>&1; then
   codesign --force --sign - "$APP_DIR" >/dev/null
+  codesign --verify --deep --strict "$APP_DIR"
 fi
 
 echo "Packaged $APP_DIR"

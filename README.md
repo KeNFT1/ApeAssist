@@ -14,7 +14,7 @@ The current character/art direction is Lulo: a playful ape desktop companion wit
 - Local-only speech playback hook using macOS `AVSpeechSynthesizer` for short previews/status snippets. No external TTS is called.
 - Notification permission/status controller with an explicit Settings button; permission is not requested automatically.
 - Risky-action confirmation scaffolding for external sends, browser/app clicks, file deletion, trading/financial actions, and config changes.
-- Settings for OpenClaw Gateway HTTP/WS URLs, session target, agent target, optional model override, bearer token, POST enablement, voice preview, sprite preview, and notification status.
+- Setup/Settings flow for local OpenClaw or a remote Mac mini over Tailscale, with Gateway token storage in macOS Keychain.
 - `OpenClawBridge` + `OpenClawClient` seam for local OpenClaw/Gateway integration.
 
 ## Sprite sheet
@@ -119,7 +119,26 @@ APP_PATH="dist/ApeAssist.app" scripts/open-app.sh
 
 Legacy `LULO_APP_NAME` / `LULO_BUNDLE_ID` environment overrides are still accepted by the package script for compatibility.
 
+## Install
+
+Build and install a local `.app` bundle:
+
+```bash
+scripts/package-app.sh
+scripts/install-app.sh
+open "$HOME/Applications/ApeAssist.app"
+```
+
+`install-app.sh` copies the app to `~/Applications` by default and moves any previous install aside with a timestamped backup. Use `INSTALL_DIR=/Applications scripts/install-app.sh` if you want a system-wide install.
+
 ## OpenClaw bridge configuration
+
+The bridge supports two setup modes in Settings:
+
+1. **This Mac** — ApeAssist talks to OpenClaw on the same machine at `http://127.0.0.1:18789`.
+2. **Mac mini over Tailscale** — ApeAssist talks to a remote OpenClaw Gateway on your tailnet, for example `http://<mac-mini-tailscale-ip>:18789`.
+
+Gateway bearer tokens are stored in macOS Keychain (`app.apeassist.gateway`) instead of source or plain `UserDefaults`. Legacy prototype tokens from `UserDefaults` are migrated automatically.
 
 The bridge is local-first. By default, it targets the local OpenClaw Gateway; you can disable POST mode in Settings or with `LULO_OPENCLAW_ENABLE_POST=false` to force dry-run placeholder replies.
 
@@ -131,7 +150,7 @@ Defaults are intentionally local and do not include secrets:
 - Agent target: `openclaw/default`
 - POST mode: on for the local Gateway unless disabled
 
-Settings fields are stored in `UserDefaults`. You can also override them with environment variables:
+Non-secret Settings fields are stored in `UserDefaults`. Secrets go to Keychain. You can also override development settings with environment variables:
 
 ```bash
 export LULO_OPENCLAW_HTTP_BASE_URL="http://127.0.0.1:18789"
@@ -174,6 +193,19 @@ x-openclaw-model: <optional provider/model override>
 ```
 
 The client parses both top-level `output_text` and item-based `output[].content[].text` response bodies, truncates long HTTP error bodies, and shows useful hints for auth failures or disabled endpoints.
+
+### Remote Mac mini over Tailscale
+
+For another Mac to use the Mac mini backend:
+
+1. Install and log in to Tailscale on both Macs.
+2. Keep OpenClaw running on the Mac mini with `/v1/responses` enabled and token auth.
+3. Configure the Gateway to listen on the tailnet IP (`gateway.bind = "tailnet"`) **or** enable Tailscale Serve in your tailnet and use `gateway.tailscale.mode = "serve"`.
+4. In ApeAssist Settings choose **Mac mini over Tailscale**.
+5. Set the endpoint to `http://<tailscale-ip>:18789` for direct tailnet bind, or the HTTPS MagicDNS URL if using Tailscale Serve.
+6. Save the Gateway bearer token to Keychain and click **Check Gateway**.
+
+Tailscale encrypts tailnet traffic, but the HTTP API still requires the Gateway token. Do not expose this with Tailscale Funnel/public internet unless you intentionally harden auth and TLS.
 
 Note: OpenClaw's `/v1/responses` endpoint is disabled by default. Enable the Gateway HTTP endpoint before turning on POST mode; do not put tokens in source:
 

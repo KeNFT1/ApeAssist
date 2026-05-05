@@ -164,7 +164,7 @@ struct OpenClawClientTests {
         let suite = UserDefaults(suiteName: suiteName)!
         defer { suite.removePersistentDomain(forName: suiteName) }
 
-        let config = OpenClawBridgeConfiguration.current(environment: [:], defaults: suite)
+        let config = OpenClawBridgeConfiguration.current(environment: [:], defaults: suite, tokenStore: MockTokenStore())
 
         #expect(config.httpBaseURL.absoluteString == SettingsKey.defaultEndpoint)
         #expect(config.webSocketURL.absoluteString == SettingsKey.defaultWebSocketURL)
@@ -172,4 +172,45 @@ struct OpenClawClientTests {
         #expect(config.agentTarget == SettingsKey.defaultAgentTarget)
         #expect(config.postingEnabled == true)
     }
+
+    @Test func configurationUsesKeychainTokenAndMigratesLegacyDefaultsToken() {
+        let suiteName = "LuloClippyTests-\(UUID().uuidString)"
+        let suite = UserDefaults(suiteName: suiteName)!
+        defer { suite.removePersistentDomain(forName: suiteName) }
+        suite.set("legacy-secret", forKey: SettingsKey.token)
+        let tokenStore = MockTokenStore()
+
+        let config = OpenClawBridgeConfiguration.current(environment: [:], defaults: suite, tokenStore: tokenStore)
+
+        #expect(config.bearerToken == "legacy-secret")
+        #expect(tokenStore.loadToken() == "legacy-secret")
+        #expect(suite.string(forKey: SettingsKey.token) == nil)
+    }
+
+    @Test func environmentTokenOverridesKeychainToken() {
+        let tokenStore = MockTokenStore(initialToken: "keychain-secret")
+
+        let config = OpenClawBridgeConfiguration.current(environment: ["LULO_OPENCLAW_TOKEN": "env-secret"], defaults: UserDefaults(suiteName: "LuloClippyTests-\(UUID().uuidString)")!, tokenStore: tokenStore)
+
+        #expect(config.bearerToken == "env-secret")
+    }
+
+    @Test func classifiesResponsesProbeStatuses() {
+        #expect(OpenClawClient.classifyResponsesProbe(statusCode: 204).isUsable)
+        #expect(OpenClawClient.classifyResponsesProbe(statusCode: 405).isUsable)
+        #expect(OpenClawClient.classifyResponsesProbe(statusCode: 404) == .disabledOrMissing(404))
+        #expect(OpenClawClient.classifyResponsesProbe(statusCode: 401) == .authMissingOrInvalid(401))
+    }
+}
+
+private final class MockTokenStore: GatewayTokenStore, @unchecked Sendable {
+    private var token: String?
+
+    init(initialToken: String? = nil) {
+        self.token = initialToken
+    }
+
+    func loadToken() -> String? { token }
+    func saveToken(_ token: String) throws { self.token = token }
+    func deleteToken() throws { token = nil }
 }

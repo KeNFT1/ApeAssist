@@ -18,6 +18,18 @@ final class OpenClawBridge: ObservableObject {
         connectivityStatus = nil
     }
 
+    func saveBearerToken(_ token: String) throws {
+        try KeychainGatewayTokenStore().saveToken(token)
+        UserDefaults.standard.removeObject(forKey: SettingsKey.token)
+        reloadConfiguration()
+    }
+
+    func deleteBearerToken() throws {
+        try KeychainGatewayTokenStore().deleteToken()
+        UserDefaults.standard.removeObject(forKey: SettingsKey.token)
+        reloadConfiguration()
+    }
+
     func checkConnectivity() async {
         reloadConfiguration()
         isCheckingConnectivity = true
@@ -89,7 +101,22 @@ final class OpenClawBridge: ObservableObject {
     }
 }
 
+enum OpenClawBackendMode: String, CaseIterable, Identifiable, Sendable {
+    case local
+    case remoteTailscale
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .local: "This Mac"
+        case .remoteTailscale: "Mac mini over Tailscale"
+        }
+    }
+}
+
 struct OpenClawBridgeConfiguration: Sendable {
+    let backendMode: OpenClawBackendMode
     let httpBaseURL: URL
     let webSocketURL: URL
     let sessionTarget: String
@@ -99,21 +126,27 @@ struct OpenClawBridgeConfiguration: Sendable {
     let postingEnabled: Bool
 
     var modeDescription: String {
-        postingEnabled ? "Posting to \(httpBaseURL.absoluteString) as \(agentTarget)" : "Dry-run local bridge placeholder"
+        postingEnabled ? "Posting to \(backendMode.label): \(httpBaseURL.absoluteString) as \(agentTarget)" : "Dry-run bridge placeholder"
     }
 
     static func current(
         environment: [String: String] = ProcessInfo.processInfo.environment,
-        defaults: UserDefaults = .standard
+        defaults: UserDefaults = .standard,
+        tokenStore: GatewayTokenStore = KeychainGatewayTokenStore()
     ) -> OpenClawBridgeConfiguration {
+        let backendMode = OpenClawBackendMode(rawValue: environment["APEASSIST_OPENCLAW_BACKEND_MODE"]
+            ?? defaults.string(forKey: SettingsKey.backendMode)
+            ?? SettingsKey.defaultBackendMode) ?? .local
+        let configuredEndpoint = backendMode == .remoteTailscale
+            ? (defaults.string(forKey: SettingsKey.remoteEndpoint) ?? SettingsKey.defaultRemoteEndpoint)
+            : (defaults.string(forKey: SettingsKey.endpoint) ?? SettingsKey.defaultEndpoint)
         let httpBase = environment["LULO_OPENCLAW_HTTP_BASE_URL"]
             ?? environment["LULO_OPENCLAW_ENDPOINT"]
-            ?? defaults.string(forKey: SettingsKey.endpoint)
-            ?? SettingsKey.defaultEndpoint
+            ?? configuredEndpoint
         let httpURL = URL(string: httpBase) ?? URL(string: SettingsKey.defaultEndpoint)!
 
         let ws = environment["LULO_OPENCLAW_WS_URL"]
-            ?? defaults.string(forKey: SettingsKey.webSocketURL)
+            ?? (backendMode == .remoteTailscale ? Self.webSocketURLString(fromHTTP: httpURL) : defaults.string(forKey: SettingsKey.webSocketURL))
             ?? SettingsKey.defaultWebSocketURL
         let wsURL = URL(string: ws) ?? URL(string: SettingsKey.defaultWebSocketURL)!
 
@@ -123,8 +156,9 @@ struct OpenClawBridgeConfiguration: Sendable {
         let agent = environment["LULO_OPENCLAW_AGENT"]
             ?? defaults.string(forKey: SettingsKey.agentTarget)
             ?? SettingsKey.defaultAgentTarget
+        GatewayTokenMigration.migrateUserDefaultsTokenIfNeeded(defaults: defaults, tokenStore: tokenStore)
         let token = environment["LULO_OPENCLAW_TOKEN"]
-            ?? defaults.string(forKey: SettingsKey.token)
+            ?? tokenStore.loadToken()
             ?? Self.gatewayTokenFromLocalOpenClawConfig()
             ?? ""
         let modelOverride = environment["LULO_OPENCLAW_MODEL"]
@@ -136,6 +170,7 @@ struct OpenClawBridgeConfiguration: Sendable {
         let enabled = ["1", "true", "yes", "on"].contains(enabledText.lowercased())
 
         return OpenClawBridgeConfiguration(
+            backendMode: backendMode,
             httpBaseURL: httpURL,
             webSocketURL: wsURL,
             sessionTarget: session,
@@ -144,6 +179,16 @@ struct OpenClawBridgeConfiguration: Sendable {
             modelOverride: modelOverride,
             postingEnabled: enabled
         )
+    }
+
+    private static func webSocketURLString(fromHTTP url: URL) -> String? {
+        var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        switch components?.scheme?.lowercased() {
+        case "https": components?.scheme = "wss"
+        case "http": components?.scheme = "ws"
+        default: return nil
+        }
+        return components?.url?.absoluteString
     }
 
     private static func gatewayTokenFromLocalOpenClawConfig() -> String? {
@@ -161,7 +206,9 @@ struct OpenClawBridgeConfiguration: Sendable {
 }
 
 enum SettingsKey {
+    static let backendMode = "openclaw.backendMode"
     static let endpoint = "openclaw.endpoint"
+    static let remoteEndpoint = "openclaw.remoteEndpoint"
     static let webSocketURL = "openclaw.webSocketURL"
     static let session = "openclaw.session"
     static let agentTarget = "openclaw.agentTarget"
@@ -171,13 +218,17 @@ enum SettingsKey {
     static let postingDefaultMigrated = "openclaw.postingDefaultMigrated"
 
     static let defaultEndpoint = "http://127.0.0.1:18789"
+    static let defaultRemoteEndpoint = "http://mac-mini.tailnet-name.ts.net:18789"
     static let defaultWebSocketURL = "ws://127.0.0.1:18789"
     static let defaultSession = "agent:main:clippy:local"
     static let defaultAgentTarget = "openclaw/default"
+    static let defaultBackendMode = OpenClawBackendMode.local.rawValue
 
     static var defaultValues: [String: Any] {
         [
+            backendMode: defaultBackendMode,
             endpoint: defaultEndpoint,
+            remoteEndpoint: defaultRemoteEndpoint,
             webSocketURL: defaultWebSocketURL,
             session: defaultSession,
             agentTarget: defaultAgentTarget,

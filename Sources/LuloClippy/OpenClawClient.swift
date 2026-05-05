@@ -61,6 +61,50 @@ public final class OpenClawClient: Sendable {
         public let ok: Bool
         public let statusCode: Int?
         public let message: String
+        public let backendOnline: Bool
+        public let authOK: Bool
+        public let responsesStatus: ResponsesEndpointStatus
+
+        public init(
+            ok: Bool,
+            statusCode: Int?,
+            message: String,
+            backendOnline: Bool,
+            authOK: Bool,
+            responsesStatus: ResponsesEndpointStatus
+        ) {
+            self.ok = ok
+            self.statusCode = statusCode
+            self.message = message
+            self.backendOnline = backendOnline
+            self.authOK = authOK
+            self.responsesStatus = responsesStatus
+        }
+    }
+
+    public enum ResponsesEndpointStatus: Sendable, Equatable {
+        case available
+        case disabledOrMissing(Int?)
+        case authMissingOrInvalid(Int)
+        case unknown(String)
+
+        public var label: String {
+            switch self {
+            case .available:
+                return "/v1/responses ready"
+            case let .disabledOrMissing(status):
+                return "/v1/responses unavailable" + (status.map { " (HTTP \($0))" } ?? "")
+            case let .authMissingOrInvalid(status):
+                return "Auth issue for /v1/responses (HTTP \(status))"
+            case let .unknown(message):
+                return "/v1/responses uncertain: \(message)"
+            }
+        }
+
+        public var isUsable: Bool {
+            if case .available = self { return true }
+            return false
+        }
     }
 
     public enum ClientError: Error, LocalizedError, Sendable, Equatable {
@@ -134,26 +178,75 @@ public final class OpenClawClient: Sendable {
     }
 
     /// Lightweight Settings probe. It only calls localhost/private Gateway HTTP metadata and does
-    /// not create/send an agent chat turn. A successful response usually means auth/base URL are OK.
+    /// not create/send an agent chat turn. A successful response means base URL/auth are OK; then
+    /// an OPTIONS probe checks whether `/v1/responses` appears enabled without creating a response.
     public func checkConnectivity() async -> ConnectivityCheck {
-        var request = baseRequest(path: "v1/models")
-        request.httpMethod = "GET"
+        var modelsRequest = baseRequest(path: "v1/models")
+        modelsRequest.httpMethod = "GET"
 
-        do {
-            _ = try await perform(request)
-            return ConnectivityCheck(ok: true, statusCode: 200, message: "Gateway reachable; /v1/models responded.")
-        } catch let error as ClientError {
-            switch error {
-            case let .invalidHTTPStatus(status, body):
-                if [404, 405, 501].contains(status) {
-                    return ConnectivityCheck(ok: false, statusCode: status, message: "/v1/models is unavailable (HTTP \(status)). Gateway may still be running, but HTTP OpenAI-compatible endpoints are not enabled. Body: \(Self.truncatedBody(body))")
-                }
-                return ConnectivityCheck(ok: false, statusCode: status, message: error.localizedDescription)
-            default:
-                return ConnectivityCheck(ok: false, statusCode: nil, message: error.localizedDescription)
-            }
-        } catch {
-            return ConnectivityCheck(ok: false, statusCode: nil, message: error.localizedDescription)
+        let modelsResult = await status(for: modelsRequest)
+        guard modelsResult.reachedTransport else {
+            return ConnectivityCheck(
+                ok: false,
+                statusCode: nil,
+                message: "Backend offline: \(modelsResult.message)",
+                backendOnline: false,
+                authOK: false,
+                responsesStatus: .unknown(modelsResult.message)
+            )
+        }
+
+        let authOK = !(modelsResult.statusCode == 401 || modelsResult.statusCode == 403)
+        guard authOK else {
+            return ConnectivityCheck(
+                ok: false,
+                statusCode: modelsResult.statusCode,
+                message: "Backend online, but Gateway auth failed. Save the bearer token in Settings.",
+                backendOnline: true,
+                authOK: false,
+                responsesStatus: .authMissingOrInvalid(modelsResult.statusCode ?? 401)
+            )
+        }
+
+        var responsesRequest = baseRequest(path: "v1/responses")
+        responsesRequest.httpMethod = "OPTIONS"
+        let responsesResult = await status(for: responsesRequest)
+        let responsesStatus = Self.classifyResponsesProbe(statusCode: responsesResult.statusCode, reachedTransport: responsesResult.reachedTransport, message: responsesResult.message)
+        let backendOnline = modelsResult.statusCode.map { (200..<500).contains($0) } ?? true
+        let modelsOK = modelsResult.statusCode.map { (200..<300).contains($0) } ?? false
+        let ok = backendOnline && authOK && responsesStatus.isUsable
+
+        let modelMessage: String
+        if modelsOK {
+            modelMessage = "Backend online; auth OK."
+        } else if let code = modelsResult.statusCode {
+            modelMessage = "Backend online, but /v1/models returned HTTP \(code)."
+        } else {
+            modelMessage = "Backend online."
+        }
+
+        return ConnectivityCheck(
+            ok: ok,
+            statusCode: responsesResult.statusCode ?? modelsResult.statusCode,
+            message: "\(modelMessage) \(responsesStatus.label)",
+            backendOnline: backendOnline,
+            authOK: true,
+            responsesStatus: responsesStatus
+        )
+    }
+
+    public static func classifyResponsesProbe(statusCode: Int?, reachedTransport: Bool = true, message: String = "") -> ResponsesEndpointStatus {
+        guard reachedTransport else { return .unknown(message) }
+        guard let statusCode else { return .unknown(message) }
+        switch statusCode {
+        case 200..<300, 204, 405:
+            return .available
+        case 401, 403:
+            return .authMissingOrInvalid(statusCode)
+        case 404, 501:
+            return .disabledOrMissing(statusCode)
+        default:
+            return .unknown("HTTP \(statusCode)")
         }
     }
 
@@ -210,6 +303,21 @@ public final class OpenClawClient: Sendable {
             throw ClientError.transport(error.localizedDescription)
         } catch {
             throw ClientError.transport(error.localizedDescription)
+        }
+    }
+
+    private func status(for request: URLRequest) async -> (reachedTransport: Bool, statusCode: Int?, message: String) {
+        do {
+            let (data, response) = try await urlSession.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse else {
+                return (true, nil, "response was not HTTPURLResponse")
+            }
+            let body = String(data: data, encoding: .utf8).map { Self.truncatedBody($0) } ?? ""
+            return (true, httpResponse.statusCode, body)
+        } catch let error as URLError {
+            return (false, nil, error.localizedDescription)
+        } catch {
+            return (false, nil, error.localizedDescription)
         }
     }
 

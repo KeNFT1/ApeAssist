@@ -1,0 +1,13 @@
+.build/
+.swiftpm/
+DerivedData/
+dist/
+*.xcuserdata/
+*.env
+*.env.local
+*.secret
+secrets.*
+*.log
+logs/
+captures/
+screenshots/

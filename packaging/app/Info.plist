@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleDevelopmentRegion</key>
+  <string>en</string>
+  <key>CFBundleDisplayName</key>
+  <string>Lulo Clippy</string>
+  <key>CFBundleExecutable</key>
+  <string>lulo-clippy</string>
+  <key>CFBundleIconFile</key>
+  <string>LuloClippy</string>
+  <key>CFBundleIdentifier</key>
+  <string>com.lulo.LuloClippy</string>
+  <key>CFBundleInfoDictionaryVersion</key>
+  <string>6.0</string>
+  <key>CFBundleName</key>
+  <string>Lulo Clippy</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleShortVersionString</key>
+  <string>0.1.0</string>
+  <key>CFBundleVersion</key>
+  <string>1</string>
+  <key>LSApplicationCategoryType</key>
+  <string>public.app-category.productivity</string>
+  <key>LSMinimumSystemVersion</key>
+  <string>14.0</string>
+  <key>LSUIElement</key>
+  <true/>
+  <key>NSHighResolutionCapable</key>
+  <true/>
+  <key>NSLocalNetworkUsageDescription</key>
+  <string>Lulo Clippy can connect to a local OpenClaw Gateway when you explicitly enable bridge POST mode.</string>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>Lulo Clippy may use the microphone for voice input if you enable voice features in a future build.</string>
+  <key>NSSpeechRecognitionUsageDescription</key>
+  <string>Lulo Clippy may use speech recognition for voice commands if you enable voice features in a future build.</string>
+</dict>
+</plist>

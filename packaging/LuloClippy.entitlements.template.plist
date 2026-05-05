@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- Local dev packaging uses ad-hoc signing and no special entitlements. -->
+  <!-- Hardened runtime is enabled at release codesign time with --options runtime. -->
+  <!-- Add only concrete, reviewed entitlements here before Developer ID signing. -->
+
+  <!-- Debug builds only. Remove for release signing. -->
+  <!-- <key>com.apple.security.get-task-allow</key><true/> -->
+
+  <!-- Sandbox is intentionally omitted for the local prototype. If enabled later,
+       redesign file/network access around explicit scopes and helper boundaries. -->
+  <!-- <key>com.apple.security.app-sandbox</key><true/> -->
+</dict>
+</plist>

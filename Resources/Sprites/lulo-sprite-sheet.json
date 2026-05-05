@@ -1,0 +1,56 @@
+{
+  "image": "lulo-sprite-sheet.png",
+  "columns": 4,
+  "rows": 4,
+  "width": 1024,
+  "height": 1024,
+  "animations": {
+    "idle": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "wave": [
+      4,
+      5,
+      6,
+      7
+    ],
+    "thinking": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "talking": [
+      12,
+      13,
+      14,
+      15
+    ]
+  },
+  "frameContentBounds": [
+    [99, 25, 214, 253],
+    [68, 23, 183, 253],
+    [39, 24, 154, 253],
+    [1, 24, 114, 253],
+    [90, 18, 245, 249],
+    [57, 18, 231, 248],
+    [28, 18, 255, 248],
+    [0, 18, 154, 248],
+    [97, 17, 219, 255],
+    [58, 19, 184, 239],
+    [26, 19, 255, 239],
+    [0, 18, 119, 239],
+    [82, 0, 244, 225],
+    [46, 1, 221, 225],
+    [20, 1, 255, 226],
+    [0, 1, 177, 225]
+  ],
+  "derivedFramesDirectory": "Frames",
+  "derivedFramePattern": "lulo-%02d.png",
+  "appIconSourceFrame": 4,
+  "source": "Generated from Lulo reference using gpt-image-2 on chroma background, keyed locally to alpha.",
+  "provenance": "Original generated sheet is retained as lulo-sprite-sheet.png. Derived frames and icons are created locally by scripts/sprite_pipeline.py without external services. frameContentBounds stores per-frame non-transparent bounds so runtime rendering can neutralize horizontal sheet drift while preserving animation frames."
+}

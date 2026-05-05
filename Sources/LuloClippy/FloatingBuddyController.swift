@@ -184,6 +184,9 @@ struct FloatingBuddyView: View {
                 assistantBubbleVisible = true
             }
         }
+        .onChange(of: bridge.pendingActions) { _, _ in
+            appState.reconcileApprovalStatus(hasPendingApproval: bridge.hasPendingApproval)
+        }
     }
 
     private var shouldShowAssistantBubble: Bool {
@@ -328,11 +331,7 @@ struct FloatingBuddyView: View {
         appState.setStatus(.thinking)
         Task {
             await bridge.send(text)
-            if bridge.pendingActions.contains(where: { $0.status == .pending }) {
-                appState.setStatus(.needsConfirmation)
-            } else {
-                appState.speakBriefly()
-            }
+            appState.finishBridgeTurn(hasPendingApproval: bridge.hasPendingApproval)
         }
     }
 }

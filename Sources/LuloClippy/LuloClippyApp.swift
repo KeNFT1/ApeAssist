@@ -94,6 +94,22 @@ final class AppState: ObservableObject {
         }
     }
 
+    func finishBridgeTurn(hasPendingApproval: Bool) {
+        if hasPendingApproval {
+            assistantStatus = .needsConfirmation
+        } else {
+            speakBriefly()
+        }
+    }
+
+    func reconcileApprovalStatus(hasPendingApproval: Bool) {
+        if hasPendingApproval {
+            assistantStatus = .needsConfirmation
+        } else if assistantStatus == .needsConfirmation {
+            speakBriefly(duration: .seconds(1.2))
+        }
+    }
+
     func speakLocalPreview(_ text: String) {
         voiceInteraction.speakPreview(text)
     }

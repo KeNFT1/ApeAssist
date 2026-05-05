@@ -60,12 +60,13 @@ final class OpenClawBridge: ObservableObject {
             if !response.media.isEmpty {
                 mediaPreview = MediaPreviewRequest(artifacts: response.media)
             }
-            if let proposal = PendingAction.placeholderProposal(for: response.text) {
-                enqueuePendingAction(proposal)
-            }
         } catch {
             messages.append(ChatMessage(role: .assistant, text: "Bridge request failed: \(error.localizedDescription)"))
         }
+    }
+
+    var hasPendingApproval: Bool {
+        pendingActions.contains(where: { $0.status == .pending })
     }
 
     func approve(_ action: PendingAction) {

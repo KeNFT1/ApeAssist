@@ -10,6 +10,7 @@ struct ChatPanelView: View {
     @State private var contextNotice: String?
     @State private var screenshotPreview: ScreenshotPreviewDraft?
     @State private var isScreenshotCaptureActive = false
+    @State private var reviewedAction: PendingAction?
     private let ambientContext = AmbientContextCoordinator()
 
     var body: some View {
@@ -63,6 +64,23 @@ struct ChatPanelView: View {
                 bridge.mediaPreview = nil
             }
         }
+        .sheet(item: $reviewedAction) { action in
+            ConfirmationSheet(
+                action: action,
+                onApprove: {
+                    bridge.approve(action)
+                    reviewedAction = nil
+                },
+                onDeny: {
+                    bridge.deny(action)
+                    reviewedAction = nil
+                },
+                onDismiss: { reviewedAction = nil }
+            )
+        }
+        .onChange(of: bridge.pendingActions) { _, _ in
+            appState.reconcileApprovalStatus(hasPendingApproval: bridge.hasPendingApproval)
+        }
     }
 
     private var contextToolbar: some View {
@@ -112,6 +130,15 @@ struct ChatPanelView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+
+            ForEach(bridge.pendingActions) { action in
+                PendingActionCard(
+                    action: action,
+                    onReview: { reviewedAction = action },
+                    onApprove: { bridge.approve(action) },
+                    onDeny: { bridge.deny(action) }
+                )
+            }
         }
         .padding(.horizontal)
         .padding(.top, 8)
@@ -159,11 +186,7 @@ struct ChatPanelView: View {
         appState.setStatus(.thinking)
         Task {
             await bridge.send(outgoing)
-            if bridge.pendingActions.contains(where: { $0.status == .pending }) {
-                appState.setStatus(.needsConfirmation)
-            } else {
-                appState.speakBriefly()
-            }
+            appState.finishBridgeTurn(hasPendingApproval: bridge.hasPendingApproval)
         }
     }
 

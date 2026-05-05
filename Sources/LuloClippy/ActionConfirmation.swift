@@ -114,31 +114,96 @@ struct ActionDetail: Codable, Equatable, Sendable, Identifiable {
 
 extension PendingAction {
     /// Local-only placeholder detector used until OpenClaw streams native approval proposals.
-    /// This is deliberately conservative: it shows the confirmation UX and does not execute anything.
+    /// This is deliberately narrow: it should only show the confirmation UX for clear,
+    /// executable risky intents and never for ordinary setup/config discussion.
     static func placeholderProposal(for text: String) -> PendingAction? {
-        let lowercased = text.lowercased()
-
-        let keywordMap: [(ActionRisk, [String])] = [
-            (.tradingOrFinancial, ["trade", "buy ", "sell ", "order", "withdraw", "payment", "pay ", "purchase", "spend", "subscription", "usdc", "crypto"]),
-            (.fileDeletion, ["delete", "remove file", "trash", "wipe", "overwrite", "rm "]),
-            (.externalSend, ["send email", "email ", "text ", "sms", "message ", "post ", "tweet", "publish", "upload", "share "]),
-            (.configChange, ["config", "settings", "credential", "token", "api key", "cron", "gateway", "restart", "enable post"]),
-            (.browserOrAppClick, ["click", "submit", "press button", "fill form", "browser", "app automation"])
-        ]
-
-        guard let match = keywordMap.first(where: { _, keywords in keywords.contains { lowercased.contains($0) } }) else {
+        guard let risk = RiskIntentDetector.detect(in: text) else {
             return nil
         }
 
         return PendingAction(
-            risk: match.0,
-            title: "Confirm before: \(match.0.title)",
+            risk: risk,
+            title: "Confirm before: \(risk.title)",
             summary: "Lulo detected that this request may require a risky action. This placeholder card proves the approval path before any Gateway execution is wired.",
             details: [
                 ActionDetail(label: "Requested text", value: String(text.prefix(500))),
-                ActionDetail(label: "Policy", value: match.0.policySummary),
+                ActionDetail(label: "Policy", value: risk.policySummary),
                 ActionDetail(label: "Execution", value: "Stub only — approve/deny records intent but does not perform the action yet.")
             ]
         )
+    }
+}
+
+enum RiskIntentDetector {
+    private static let configObjects = ["config", "configuration", "setting", "settings", "credential", "credentials", "token", "api key", "cron", "gateway", "endpoint", "post mode", "automation"]
+    private static let configVerbs = ["apply", "change", "update", "set", "edit", "enable", "disable", "restart", "rotate", "delete", "remove", "store", "save", "configure"]
+    private static let financialVerbs = ["buy", "sell", "trade", "order", "withdraw", "pay", "purchase", "spend", "subscribe"]
+    private static let externalSendVerbs = ["send", "post", "tweet", "publish", "upload", "share"]
+    private static let directCommunicationVerbs = ["email", "text", "sms", "message"]
+    private static let fileVerbs = ["delete", "remove", "trash", "wipe", "overwrite", "rm"]
+    private static let browserVerbs = ["click", "submit", "press", "fill"]
+    private static let browserObjects = ["button", "form", "browser", "app", "page", "website"]
+
+    static func detect(in text: String) -> ActionRisk? {
+        let normalized = normalize(text)
+        guard !normalized.isEmpty else { return nil }
+        guard !startsWithInformationQuestion(normalized) else { return nil }
+
+        if containsAny(normalized, financialVerbs) {
+            return .tradingOrFinancial
+        }
+
+        if containsAny(normalized, externalSendVerbs) || startsWithCommandVerb(normalized, directCommunicationVerbs) {
+            return .externalSend
+        }
+
+        if containsAny(normalized, fileVerbs), containsLikelyFileTarget(normalized) {
+            return .fileDeletion
+        }
+
+        if containsAny(normalized, configVerbs), containsAny(normalized, configObjects) {
+            return .configChange
+        }
+
+        if containsAny(normalized, browserVerbs), containsAny(normalized, browserObjects) {
+            return .browserOrAppClick
+        }
+
+        return nil
+    }
+
+    private static func normalize(_ text: String) -> String {
+        text.lowercased()
+            .replacingOccurrences(of: #"[^a-z0-9_./-]+"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private static func containsAny(_ text: String, _ terms: [String]) -> Bool {
+        terms.contains { containsTerm($0, in: text) }
+    }
+
+    private static func containsTerm(_ term: String, in text: String) -> Bool {
+        let escaped = NSRegularExpression.escapedPattern(for: term)
+        return text.range(of: #"(^|\s)\#(escaped)(\s|$)"#, options: .regularExpression) != nil
+    }
+
+    private static func containsLikelyFileTarget(_ text: String) -> Bool {
+        containsAny(text, ["file", "files", "folder", "folders", "directory", "directories", "path", "paths"])
+            || text.contains("/")
+            || text.range(of: #"\.[a-z0-9]{1,8}(\s|$)"#, options: .regularExpression) != nil
+    }
+
+    private static func startsWithCommandVerb(_ text: String, _ terms: [String]) -> Bool {
+        terms.contains { term in
+            containsTerm(term, in: text)
+                && (text.hasPrefix(term + " ")
+                    || text.hasPrefix("please " + term + " ")
+                    || text.hasPrefix("can you " + term + " ")
+                    || text.hasPrefix("could you " + term + " "))
+        }
+    }
+
+    private static func startsWithInformationQuestion(_ text: String) -> Bool {
+        ["what ", "where ", "why ", "who ", "when ", "how "].contains { text.hasPrefix($0) }
     }
 }

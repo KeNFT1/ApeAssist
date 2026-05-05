@@ -121,7 +121,42 @@ Legacy `LULO_APP_NAME` / `LULO_BUNDLE_ID` environment overrides are still accept
 
 ## Install
 
-Build and install a local `.app` bundle:
+### Installer package into `/Applications`
+
+Build a local unsigned `.pkg` installer and install ApeAssist into `/Applications`:
+
+```bash
+scripts/package-pkg.sh
+sudo installer -pkg dist/ApeAssist-0.1.0.pkg -target /
+open "/Applications/ApeAssist.app"
+```
+
+`package-pkg.sh` calls `scripts/package-app.sh` first, then packages `dist/ApeAssist.app` with `pkgbuild` and `productbuild` when available. The installer output is `dist/ApeAssist-<version>.pkg` and uses package identifier `app.apeassist.mac.pkg` by default.
+
+This package is intentionally unsigned unless you build it with your own Developer ID Installer certificate. Local unsigned packages/apps can trip Gatekeeper or quarantine prompts if copied between machines. For local testing, right-click/Open once in Finder or remove quarantine from the local build if you trust it:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/ApeAssist.app"
+```
+
+Optional overrides:
+
+```bash
+APEASSIST_PKG_IDENTIFIER="app.apeassist.mac.pkg.dev" scripts/package-pkg.sh
+APEASSIST_SKIP_APP_BUILD=true APP_PATH="dist/ApeAssist.app" scripts/package-pkg.sh
+OUTPUT_PKG="dist/ApeAssist.pkg" scripts/package-pkg.sh
+```
+
+To uninstall a package-installed local build:
+
+```bash
+sudo rm -rf "/Applications/ApeAssist.app"
+pkgutil --forget app.apeassist.mac.pkg 2>/dev/null || true
+```
+
+### User-local app copy
+
+Build and install a local `.app` bundle without a pkg:
 
 ```bash
 scripts/package-app.sh
@@ -129,7 +164,7 @@ scripts/install-app.sh
 open "$HOME/Applications/ApeAssist.app"
 ```
 
-`install-app.sh` copies the app to `~/Applications` by default and moves any previous install aside with a timestamped backup. Use `INSTALL_DIR=/Applications scripts/install-app.sh` if you want a system-wide install.
+`install-app.sh` copies the app to `~/Applications` by default and moves any previous install aside with a timestamped backup. Use `INSTALL_DIR=/Applications scripts/install-app.sh` if you want a system-wide install without building a pkg.
 
 ## OpenClaw bridge configuration
 

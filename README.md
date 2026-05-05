@@ -122,6 +122,38 @@ Legacy `LULO_APP_NAME` / `LULO_BUNDLE_ID` environment overrides are still accept
 
 ## Install
 
+### Recommended: one-file DMG for nontechnical testers
+
+Build a shareable DMG that contains `ApeAssist.app`, a `START HERE.command` helper, a `README.txt`, and an `Applications` drag-install shortcut:
+
+```bash
+scripts/package-dmg.sh
+open dist/ApeAssist-0.1.0.dmg
+```
+
+The default output is `dist/ApeAssist-0.1.0.dmg`. The helper copies ApeAssist to `~/Applications` so the installer does not need sudo, opens the app, and shows the remote setup checklist. Users can also drag `ApeAssist.app` onto the `Applications` shortcut in the DMG if they prefer a normal macOS drag install.
+
+Nontechnical install steps:
+
+1. Open `ApeAssist-0.1.0.dmg`.
+2. Double-click `START HERE.command` **or** drag `ApeAssist.app` to `Applications`.
+3. Install Tailscale from <https://tailscale.com/download/mac> and log in to Ken's tailnet.
+4. Open ApeAssist Settings -> OpenClaw Bridge.
+5. Choose **Mac mini over Tailscale**.
+6. Click **Pair with Ken's Pinchy** -> **Enter pairing code**.
+7. Paste Ken's ApeAssist pairing invite, enter the passphrase if the invite is encrypted, click **Import Pairing Invite**, then **Check Gateway**.
+8. Click the floating ape and ask a question.
+
+Tailscale login and pairing still require user action on purpose: Tailscale must authenticate the user's Mac into the private tailnet, and the pairing invite contains or decrypts to a Gateway token. The DMG never bundles a real token/invite, so the artifact can be shared without leaking Ken's OpenClaw backend access.
+
+Useful overrides:
+
+```bash
+APEASSIST_SKIP_APP_BUILD=true scripts/package-dmg.sh
+OUTPUT_DMG=dist/ApeAssist-Remote-Setup.dmg scripts/package-dmg.sh
+APEASSIST_DMG_VOLUME_NAME="ApeAssist Setup" scripts/package-dmg.sh
+```
+
 ### Installer package into `/Applications`
 
 Build a local unsigned `.pkg` installer and install ApeAssist into `/Applications`:

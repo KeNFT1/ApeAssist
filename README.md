@@ -202,8 +202,15 @@ For another Mac to use the Mac mini backend:
 2. Keep OpenClaw running on the Mac mini with `/v1/responses` enabled and token auth.
 3. Configure the Gateway to listen on the tailnet IP (`gateway.bind = "tailnet"`) **or** enable Tailscale Serve in your tailnet and use `gateway.tailscale.mode = "serve"`.
 4. In ApeAssist Settings choose **Mac mini over Tailscale**.
-5. Set the endpoint to `http://<tailscale-ip>:18789` for direct tailnet bind, or the HTTPS MagicDNS URL if using Tailscale Serve.
+5. Set the endpoint to the HTTPS MagicDNS URL if using Tailscale Serve, or `http://<tailscale-ip>:18789` for direct tailnet bind.
 6. Save the Gateway bearer token to Keychain and click **Check Gateway**.
+
+
+Current Tailscale Serve endpoint for this Mac mini:
+
+```text
+https://pinchys-mac-mini.taild71e14.ts.net/
+```
 
 Tailscale encrypts tailnet traffic, but the HTTP API still requires the Gateway token. Do not expose this with Tailscale Funnel/public internet unless you intentionally harden auth and TLS.
 

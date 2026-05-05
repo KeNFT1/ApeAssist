@@ -158,6 +158,104 @@ def nearest_resize(src: ImageRGBA, width: int, height: int) -> ImageRGBA:
     return ImageRGBA(width, height, out)
 
 
+def content_bounds(image: ImageRGBA, threshold: int = 8) -> tuple[int, int, int, int]:
+    bbox = None
+    for y in range(image.height):
+        for x in range(image.width):
+            a = image.pixels[(y * image.width + x) * 4 + 3]
+            if a > threshold:
+                if bbox is None:
+                    bbox = [x, y, x, y]
+                else:
+                    bbox[0] = min(bbox[0], x)
+                    bbox[1] = min(bbox[1], y)
+                    bbox[2] = max(bbox[2], x)
+                    bbox[3] = max(bbox[3], y)
+    if bbox is None:
+        return (0, 0, image.width, image.height)
+    return (bbox[0], bbox[1], bbox[2] - bbox[0] + 1, bbox[3] - bbox[1] + 1)
+
+
+def remove_green_fringe(image: ImageRGBA) -> ImageRGBA:
+    """Drop chroma-key leftovers from the sprite export before icon compositing."""
+    out = ImageRGBA(image.width, image.height, bytearray(image.pixels))
+    for i in range(0, len(out.pixels), 4):
+        r, g, b, a = out.pixels[i], out.pixels[i + 1], out.pixels[i + 2], out.pixels[i + 3]
+        if a and g > 70 and g > r * 1.15 and g > b * 1.15:
+            out.pixels[i + 3] = 0
+    return out
+
+
+def blend_pixel(dest: ImageRGBA, x: int, y: int, rgba: tuple[int, int, int, int]) -> None:
+    if x < 0 or y < 0 or x >= dest.width or y >= dest.height:
+        return
+    i = (y * dest.width + x) * 4
+    sr, sg, sb, sa = rgba
+    if sa <= 0:
+        return
+    da = dest.pixels[i + 3]
+    inv = 255 - sa
+    out_a = sa + (da * inv + 127) // 255
+    if out_a <= 0:
+        dest.pixels[i:i + 4] = b"\x00\x00\x00\x00"
+        return
+    dr, dg, db = dest.pixels[i], dest.pixels[i + 1], dest.pixels[i + 2]
+    # Straight-alpha source-over. The icon art is tiny, so clarity beats cleverness.
+    out_r = (sr * sa + dr * da * inv // 255) // out_a
+    out_g = (sg * sa + dg * da * inv // 255) // out_a
+    out_b = (sb * sa + db * da * inv // 255) // out_a
+    dest.pixels[i:i + 4] = bytes((max(0, min(255, out_r)), max(0, min(255, out_g)), max(0, min(255, out_b)), out_a))
+
+
+def composite(dest: ImageRGBA, src: ImageRGBA, x: int, y: int, opacity: float = 1.0,
+              tint: tuple[int, int, int] | None = None) -> None:
+    opacity = max(0.0, min(1.0, opacity))
+    for sy in range(src.height):
+        for sx in range(src.width):
+            si = (sy * src.width + sx) * 4
+            a = int(src.pixels[si + 3] * opacity)
+            if tint is None:
+                rgba = (src.pixels[si], src.pixels[si + 1], src.pixels[si + 2], a)
+            else:
+                rgba = (tint[0], tint[1], tint[2], a)
+            blend_pixel(dest, x + sx, y + sy, rgba)
+
+
+def rounded_rect_icon_background(size: int) -> ImageRGBA:
+    out = ImageRGBA(size, size, bytearray(size * size * 4))
+    radius = int(size * 0.225)
+    margin = int(size * 0.055)
+    cx = cy = size / 2
+    max_dist = math.sqrt(cx * cx + cy * cy)
+    for y in range(size):
+        for x in range(size):
+            # Signed distance to rounded square.
+            qx = abs(x - cx) - (size / 2 - margin - radius)
+            qy = abs(y - cy) - (size / 2 - margin - radius)
+            outside = math.sqrt(max(qx, 0) ** 2 + max(qy, 0) ** 2) + min(max(qx, qy), 0) - radius
+            aa = max(0, min(255, int(255 * (1.5 - outside))))
+            if aa == 0:
+                continue
+            t = y / max(1, size - 1)
+            radial = 1 - min(1, math.sqrt((x - cx) ** 2 + (y - cy) ** 2) / max_dist)
+            r = int(31 + 28 * (1 - t) + 24 * radial)
+            g = int(122 + 70 * (1 - t) + 18 * radial)
+            b = int(116 + 64 * (1 - t) + 36 * radial)
+            blend_pixel(out, x, y, (r, g, b, aa))
+    # Soft inner highlight near the top-left and subtle bottom shade.
+    for y in range(size):
+        for x in range(size):
+            i = (y * size + x) * 4
+            if out.pixels[i + 3] == 0:
+                continue
+            hi = max(0, 1 - math.sqrt((x - size * 0.31) ** 2 + (y - size * 0.22) ** 2) / (size * 0.52))
+            shade = max(0, (y / size - 0.62) / 0.38)
+            out.pixels[i] = max(0, min(255, int(out.pixels[i] + 42 * hi - 18 * shade)))
+            out.pixels[i + 1] = max(0, min(255, int(out.pixels[i + 1] + 38 * hi - 20 * shade)))
+            out.pixels[i + 2] = max(0, min(255, int(out.pixels[i + 2] + 48 * hi - 24 * shade)))
+    return out
+
+
 def load_meta(path: Path) -> dict:
     return json.loads(path.read_text())
 
@@ -262,8 +360,29 @@ def make_icon(sheet_path: Path, meta_path: Path, frame_index: int, icon_png: Pat
     cell_w = image.width // cols
     cell_h = image.height // rows
     frame_index = max(0, min(frame_index, cols * rows - 1))
-    frame = crop(image, (frame_index % cols) * cell_w, (frame_index // cols) * cell_h, cell_w, cell_h)
-    icon = nearest_resize(frame, 1024, 1024)
+    frame = remove_green_fringe(crop(image, (frame_index % cols) * cell_w, (frame_index // cols) * cell_h, cell_w, cell_h))
+    bx, by, bw, bh = content_bounds(frame)
+    lulo = crop(frame, bx, by, bw, bh)
+
+    icon = rounded_rect_icon_background(1024)
+    target = 720
+    if bw >= bh:
+        lulo_w = target
+        lulo_h = max(1, round(target * bh / bw))
+    else:
+        lulo_h = target
+        lulo_w = max(1, round(target * bw / bh))
+    lulo_large = nearest_resize(lulo, lulo_w, lulo_h)
+    x = (1024 - lulo_w) // 2
+    y = (1024 - lulo_h) // 2 + 38
+
+    # A tiny pixel-art mascot benefits from app-icon treatment: soft shadow,
+    # bright sticker outline, then the original Lulo pixels on top.
+    for dx, dy, opacity in ((0, 46, 0.22), (0, 28, 0.18), (20, 34, 0.10)):
+        composite(icon, lulo_large, x + dx, y + dy, opacity=opacity, tint=(0, 0, 0))
+    for dx, dy in ((-12, 0), (12, 0), (0, -12), (0, 12), (-8, -8), (8, -8), (-8, 8), (8, 8)):
+        composite(icon, lulo_large, x + dx, y + dy, opacity=0.86, tint=(255, 251, 236))
+    composite(icon, lulo_large, x, y)
     icon_png.parent.mkdir(parents=True, exist_ok=True)
     write_png_rgba(icon_png, icon)
 

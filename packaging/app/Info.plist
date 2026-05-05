@@ -7,9 +7,9 @@
   <key>CFBundleDisplayName</key>
   <string>ApeAssist</string>
   <key>CFBundleExecutable</key>
-  <string>lulo-clippy</string>
-  <key>CFBundleIconFile</key>
   <string>ApeAssist</string>
+  <key>CFBundleIconFile</key>
+  <string>LuloAppIcon</string>
   <key>CFBundleIdentifier</key>
   <string>app.apeassist.mac</string>
   <key>CFBundleInfoDictionaryVersion</key>

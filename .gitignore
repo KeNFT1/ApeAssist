@@ -11,3 +11,9 @@ secrets.*
 logs/
 captures/
 screenshots/
+
+# Android
+android/.gradle/
+android/local.properties
+android/app/build/
+android/build/

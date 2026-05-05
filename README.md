@@ -92,6 +92,23 @@ scripts/package-app.sh
 
 The app uses `.accessory` activation policy, so it behaves like a menu bar app instead of a normal Dock app. Look for ApeAssist in the macOS menu bar.
 
+## Android MVP
+
+An Android MVP scaffold now lives in [`android/`](android/). It is separate from the SwiftPM/macOS app and does not change the macOS packaging path.
+
+Included Android flow:
+
+1. Install/run the `app.apeassist.android` app in Android Studio or Gradle.
+2. Connect the device/emulator to Ken's tailnet with Tailscale.
+3. Use the default Mac mini endpoint: `https://pinchys-mac-mini.taild71e14.ts.net/`.
+4. Paste a clear v1 ApeAssist pairing invite (`APEASSIST-INVITE-v1:<base64-json>` or raw invite JSON).
+5. Tap **Import invite**, then **Check Gateway** (`GET /v1/models`).
+6. Send chat messages through `POST /v1/responses` with `model=openclaw/default`, `stream=false`, the saved session key, and the stored bearer token.
+
+Tokens are stored via AndroidX Security `EncryptedSharedPreferences`/Android Keystore. No real token is committed. Encrypted invite strings are recognized but decryption is intentionally stubbed for this MVP until Android crypto compatibility with the macOS OpenSSL invite format is implemented.
+
+See [`android/README.md`](android/README.md) for build prerequisites and limitations.
+
 ## Clickable local `.app`
 
 For a Finder-clickable local dev build, package the SwiftPM executable into a minimal app bundle:

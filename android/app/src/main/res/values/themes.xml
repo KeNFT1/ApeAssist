@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.ApeAssist" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:navigationBarColor">#FFF8F2</item>
+        <item name="android:statusBarColor">#FFF8F2</item>
+    </style>
+</resources>

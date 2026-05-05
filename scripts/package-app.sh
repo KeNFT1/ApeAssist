@@ -3,11 +3,12 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-APP_NAME="${LULO_APP_NAME:-Lulo Clippy}"
-BUNDLE_ID="${LULO_BUNDLE_ID:-com.lulo.LuloClippy}"
+APP_NAME="${APEASSIST_APP_NAME:-${LULO_APP_NAME:-ApeAssist}}"
+BUNDLE_ID="${APEASSIST_BUNDLE_ID:-${LULO_BUNDLE_ID:-app.apeassist.mac}}"
 CONFIGURATION="${LULO_CONFIGURATION:-release}"
 APP_DIR="$ROOT_DIR/dist/${APP_NAME}.app"
 ICON="$ROOT_DIR/Resources/AppIcon/LuloAppIcon.icns"
+EXECUTABLE_NAME="${APEASSIST_EXECUTABLE_NAME:-ApeAssist}"
 
 cd "$ROOT_DIR"
 
@@ -22,7 +23,7 @@ EXECUTABLE="$BIN_PATH/lulo-clippy"
 
 rm -rf "$APP_DIR"
 mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
-cp "$EXECUTABLE" "$APP_DIR/Contents/MacOS/Lulo Clippy"
+cp "$EXECUTABLE" "$APP_DIR/Contents/MacOS/$EXECUTABLE_NAME"
 cp "$ICON" "$APP_DIR/Contents/Resources/LuloAppIcon.icns"
 
 # SwiftPM emits processed resources as bundles next to the executable. Keep any
@@ -39,7 +40,7 @@ cat > "$APP_DIR/Contents/Info.plist" <<PLIST
   <key>CFBundleDisplayName</key>
   <string>${APP_NAME}</string>
   <key>CFBundleExecutable</key>
-  <string>Lulo Clippy</string>
+  <string>${EXECUTABLE_NAME}</string>
   <key>CFBundleIconFile</key>
   <string>LuloAppIcon</string>
   <key>CFBundleIdentifier</key>

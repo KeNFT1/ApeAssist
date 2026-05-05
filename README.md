@@ -1,26 +1,25 @@
-# Lulo Clippy
+# ApeAssist
 
-A small native macOS “Clippy for OpenClaw” scaffold, built with SwiftUI + AppKit and Swift Package Manager.
+ApeAssist is a native macOS floating AI sidekick powered by OpenClaw. It gives your local OpenClaw agent a small always-on-top desktop buddy: part quick chat launcher, part status indicator, part approval surface for risky actions.
 
-## Included
+The current character/art direction is Lulo: a playful ape desktop companion with BAYC-inspired taste. ApeAssist is an independent project and is not affiliated with, endorsed by, or sponsored by Yuga Labs or Bored Ape Yacht Club.
 
-- Floating always-on-top desktop buddy window (`NSPanel`) with animated Lulo sprite states.
-- Menu bar accessory app with:
-  - show/hide desktop buddy
-  - open chat panel
-  - open settings
-  - quit
-- SwiftUI chat panel with message list, input, send button, local dry-run replies, and opt-in live OpenClaw replies.
-- Push-to-talk voice/status seam: hold Option+Space while Lulo is focused to preview `listening` state. No audio is recorded yet.
+## Highlights
+
+- Floating transparent desktop buddy window (`NSPanel`) with animated ape sprite states.
+- Menu bar accessory app with controls to show/hide the buddy, open chat, open settings, and quit.
+- SwiftUI chat panel with message history, local dry-run replies, media preview, and opt-in live OpenClaw replies.
+- Speech bubble on the floating buddy for the latest assistant response, sized to the response with scrolling for long text.
+- Push-to-talk voice/status seam: hold Option+Space while ApeAssist is focused to preview `listening` state. No audio is recorded yet.
 - Local-only speech playback hook using macOS `AVSpeechSynthesizer` for short previews/status snippets. No external TTS is called.
 - Notification permission/status controller with an explicit Settings button; permission is not requested automatically.
-- Risky-action confirmation scaffolding: local `ActionRisk` / `PendingAction` models plus approval cards and a detail sheet for external sends, browser/app clicks, file deletion, trading/financial actions, and config changes.
+- Risky-action confirmation scaffolding for external sends, browser/app clicks, file deletion, trading/financial actions, and config changes.
 - Settings for OpenClaw Gateway HTTP/WS URLs, session target, agent target, optional model override, bearer token, POST enablement, voice preview, sprite preview, and notification status.
 - `OpenClawBridge` + `OpenClawClient` seam for local OpenClaw/Gateway integration.
 
 ## Sprite sheet
 
-Lulo's desktop buddy art is packaged from:
+ApeAssist currently packages Lulo desktop buddy art from:
 
 ```text
 Resources/Sprites/lulo-sprite-sheet.png       # original/provenance sheet
@@ -51,9 +50,9 @@ See `docs/sprite-assets.md` for asset quality notes, chroma-key options, and pac
 
 - The buddy idles normally.
 - Sending a chat message sets `thinking` while `OpenClawBridge.send` is in flight.
-- After an assistant response, Lulo switches to `talking` briefly, then returns to `idle`.
-- If a tool/action proposal looks risky, Lulo switches to `needsConfirmation` and shows approval UI instead of executing.
-- Holding Option+Space while Lulo is focused sets `listening`; release returns through `thinking` to `idle`. This is only a state seam and does not record audio.
+- After an assistant response, ApeAssist switches to `talking` briefly, then returns to `idle`.
+- If a tool/action proposal looks risky, ApeAssist switches to `needsConfirmation` and shows approval UI instead of executing.
+- Holding Option+Space while ApeAssist is focused sets `listening`; release returns through `thinking` to `idle`. This is only a state seam and does not record audio.
 - Local speech preview sets `talking` for the duration of AVSpeechSynthesizer playback.
 - The menu bar and Settings include preview/debug controls for state and animation speed.
 
@@ -69,7 +68,7 @@ Current safety defaults:
 
 ## Risky-action confirmations
 
-Lulo treats these action classes as requiring explicit user confirmation before execution:
+ApeAssist treats these action classes as requiring explicit user confirmation before execution:
 
 - external sends/posts/uploads/messages
 - browser or app clicks/form submissions
@@ -86,11 +85,11 @@ cd /Users/pinchy/.openclaw/workspace/lulo-clippy
 swift build
 swift run lulo-clippy
 
-# Optional local .app bundle with the generated Lulo icon
+# Optional local .app bundle with the generated app icon
 scripts/package-app.sh
 ```
 
-The app uses `.accessory` activation policy, so it behaves like a menu bar app instead of a normal Dock app. Look for the paperclip icon in the macOS menu bar.
+The app uses `.accessory` activation policy, so it behaves like a menu bar app instead of a normal Dock app. Look for ApeAssist in the macOS menu bar.
 
 ## Clickable local `.app`
 
@@ -99,7 +98,7 @@ For a Finder-clickable local dev build, package the SwiftPM executable into a mi
 ```bash
 cd /Users/pinchy/.openclaw/workspace/lulo-clippy
 scripts/package-app.sh
-open "dist/Lulo Clippy.app"
+open "dist/ApeAssist.app"
 ```
 
 Or use the guarded launcher:
@@ -108,27 +107,29 @@ Or use the guarded launcher:
 scripts/open-app.sh
 ```
 
-`package-app.sh` builds `lulo-clippy` in release mode by default, assembles `dist/Lulo Clippy.app`, copies SwiftPM resource bundles, installs `Resources/AppIcon/LuloAppIcon.icns`, and ad-hoc signs the result for local launch. If the icon is missing, it regenerates it locally from the Lulo sprite pipeline. It does **not** install launch agents, login items, global config, or make permanent system changes.
+`package-app.sh` builds `lulo-clippy` in release mode by default, assembles `dist/ApeAssist.app`, copies SwiftPM resource bundles, installs `Resources/AppIcon/LuloAppIcon.icns`, and ad-hoc signs the result for local launch. If the icon is missing, it regenerates it locally from the local sprite pipeline. It does **not** install launch agents, login items, global config, or make permanent system changes.
 
 Useful overrides:
 
 ```bash
 LULO_CONFIGURATION=debug scripts/package-app.sh
-LULO_APP_NAME="Lulo Clippy Dev" scripts/package-app.sh
-APP_PATH="dist/Lulo Clippy.app" scripts/open-app.sh
+APEASSIST_APP_NAME="ApeAssist Dev" scripts/package-app.sh
+APP_PATH="dist/ApeAssist.app" scripts/open-app.sh
 ```
+
+Legacy `LULO_APP_NAME` / `LULO_BUNDLE_ID` environment overrides are still accepted by the package script for compatibility.
 
 ## OpenClaw bridge configuration
 
-The bridge is safe by default. Chat messages stay local and return placeholder replies unless POST mode is explicitly enabled in Settings or with `LULO_OPENCLAW_ENABLE_POST=true`.
+The bridge is local-first. By default, it targets the local OpenClaw Gateway; you can disable POST mode in Settings or with `LULO_OPENCLAW_ENABLE_POST=false` to force dry-run placeholder replies.
 
-Defaults are intentionally local to Ken's Mac and do not include secrets:
+Defaults are intentionally local and do not include secrets:
 
 - HTTP base URL: `http://127.0.0.1:18789`
 - WebSocket URL: `ws://127.0.0.1:18789`
 - Session: `agent:main:clippy:local`
 - Agent target: `openclaw/default`
-- POST mode: off
+- POST mode: on for the local Gateway unless disabled
 
 Settings fields are stored in `UserDefaults`. You can also override them with environment variables:
 
@@ -204,6 +205,6 @@ LuloClippyApp
 ## Next steps
 
 1. Add SSE streaming, cancellation, and tool-progress state to `OpenClawBridge`.
-2. Decide whether Clippy should use an isolated session (`agent:main:clippy:local`) or Ken's main session.
+2. Decide whether ApeAssist should use an isolated session (`agent:main:clippy:local`) or Ken's main session.
 3. Persist chat history.
 4. Replace the local dev bundle script with a Developer ID signed/notarized release flow when distribution is needed.

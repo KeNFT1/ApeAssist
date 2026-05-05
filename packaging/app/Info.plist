@@ -5,17 +5,17 @@
   <key>CFBundleDevelopmentRegion</key>
   <string>en</string>
   <key>CFBundleDisplayName</key>
-  <string>Lulo Clippy</string>
+  <string>ApeAssist</string>
   <key>CFBundleExecutable</key>
   <string>lulo-clippy</string>
   <key>CFBundleIconFile</key>
-  <string>LuloClippy</string>
+  <string>ApeAssist</string>
   <key>CFBundleIdentifier</key>
-  <string>com.lulo.LuloClippy</string>
+  <string>app.apeassist.mac</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>
-  <string>Lulo Clippy</string>
+  <string>ApeAssist</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
@@ -31,10 +31,10 @@
   <key>NSHighResolutionCapable</key>
   <true/>
   <key>NSLocalNetworkUsageDescription</key>
-  <string>Lulo Clippy can connect to a local OpenClaw Gateway when you explicitly enable bridge POST mode.</string>
+  <string>ApeAssist can connect to a local OpenClaw Gateway when bridge POST mode is enabled.</string>
   <key>NSMicrophoneUsageDescription</key>
-  <string>Lulo Clippy may use the microphone for voice input if you enable voice features in a future build.</string>
+  <string>ApeAssist may use the microphone for voice input if you enable voice features in a future build.</string>
   <key>NSSpeechRecognitionUsageDescription</key>
-  <string>Lulo Clippy may use speech recognition for voice commands if you enable voice features in a future build.</string>
+  <string>ApeAssist may use speech recognition for voice commands if you enable voice features in a future build.</string>
 </dict>
 </plist>

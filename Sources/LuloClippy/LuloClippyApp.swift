@@ -10,13 +10,13 @@ struct LuloClippyApp: App {
     }
 
     var body: some Scene {
-        MenuBarExtra("Lulo", systemImage: "paperclip") {
+        MenuBarExtra("ApeAssist", systemImage: "bubble.left.and.bubble.right.fill") {
             MenuBarControls()
                 .environmentObject(appDelegate.appState)
         }
         .menuBarExtraStyle(.menu)
 
-        WindowGroup("Lulo Chat", id: "chat") {
+        WindowGroup("ApeAssist Chat", id: "chat") {
             ChatPanelView()
                 .environmentObject(appDelegate.bridge)
                 .environmentObject(appDelegate.appState)

@@ -115,9 +115,9 @@ private struct VoiceSettingsSection: View {
                     .disabled(controller.isPushToTalkHeld)
                 Button("Stop") { controller.endPushToTalk() }
                     .disabled(!controller.isPushToTalkHeld)
-                Button("Speak Local Preview") { appState.speakLocalPreview("Lulo local speech preview.") }
+                Button("Speak Local Preview") { appState.speakLocalPreview("ApeAssist local speech preview.") }
             }
-            Text("This is only a UX seam: Lulo does not record audio or transcribe yet. Local speech uses macOS AVSpeechSynthesizer; external TTS is not called.")
+            Text("This is only a UX seam: ApeAssist does not record audio or transcribe yet. Local speech uses macOS AVSpeechSynthesizer; external TTS is not called.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -130,7 +130,7 @@ private struct NotificationSettingsSection: View {
     var body: some View {
         Section("Notifications") {
             LabeledContent("Permission", value: controller.authorizationStatus.displayName)
-            Text("Lulo can notify you for useful local events like completed tasks or bridge status. Permission is requested only when you click the button below.")
+            Text("ApeAssist can notify you for useful local events like completed tasks or bridge status. Permission is requested only when you click the button below.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 

@@ -4,7 +4,7 @@ import SwiftUI
 @MainActor
 final class OpenClawBridge: ObservableObject {
     @Published private(set) var messages: [ChatMessage] = [
-        ChatMessage(role: .assistant, text: "Hi Ken — I’m the first-pass native macOS Lulo buddy. The OpenClaw bridge is wired for the local Gateway and stays dry-run until you enable posting.")
+        ChatMessage(role: .assistant, text: "Hi Ken — I’m ApeAssist, your native macOS AI sidekick. The OpenClaw bridge is wired for the local Gateway and risky actions still require explicit approval cards.")
     ]
     @Published private(set) var isSending = false
     @Published private(set) var isCheckingConnectivity = false
@@ -219,7 +219,7 @@ enum ChatRole: Equatable {
     var displayName: String {
         switch self {
         case .user: "You"
-        case .assistant: "Lulo"
+        case .assistant: "ApeAssist"
         }
     }
 }

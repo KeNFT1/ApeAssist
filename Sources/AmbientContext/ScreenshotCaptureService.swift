@@ -29,7 +29,7 @@ public final class ScreenshotCaptureService: ScreenshotCapturing {
         }
 
         guard let image else {
-            throw AmbientContextError.captureNotImplemented("Could not capture the requested screenshot. Try a full-display capture or grant Screen Recording and relaunch Lulo Clippy.")
+            throw AmbientContextError.captureNotImplemented("Could not capture the requested screenshot. Try a full-display capture or grant Screen Recording and relaunch ApeAssist.")
         }
 
         let bitmap = NSBitmapImageRep(cgImage: image)

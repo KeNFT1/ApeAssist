@@ -40,7 +40,7 @@ struct ChatPanelView: View {
             contextToolbar
 
             HStack(alignment: .bottom, spacing: 10) {
-                TextField("Ask Lulo…", text: $draft, axis: .vertical)
+                TextField("Ask ApeAssist…", text: $draft, axis: .vertical)
                     .textFieldStyle(.roundedBorder)
                     .lineLimit(1...5)
                     .onSubmit(send)
@@ -125,7 +125,7 @@ struct ChatPanelView: View {
         HStack(spacing: 12) {
             LuloSpriteView(status: appState.assistantStatus, frameSize: 48, speedMultiplier: appState.animationSpeed)
             VStack(alignment: .leading, spacing: 2) {
-                Text("Lulo Clippy")
+                Text("ApeAssist")
                     .font(.title2.bold())
                 HStack(spacing: 6) {
                     Label(appState.assistantStatus.label, systemImage: appState.assistantStatus.systemImage)
@@ -256,12 +256,12 @@ struct ChatPanelView: View {
         if let url = AmbientPermissions.screenRecordingSettingsURL {
             NSWorkspace.shared.open(url)
         }
-        contextNotice = "Approve Screen Recording for Lulo Clippy in System Settings, then relaunch if macOS asks."
+        contextNotice = "Approve Screen Recording for ApeAssist in System Settings, then relaunch if macOS asks."
     }
 
     private func screenshotErrorMessage(_ error: Error) -> String {
         if case AmbientContextError.permissionMissing(let permission) = error, permission == "Screen Recording" {
-            return "Screen Recording permission is missing. Click Enable Screen Recording, approve Lulo Clippy in System Settings, then relaunch if macOS asks."
+            return "Screen Recording permission is missing. Click Enable Screen Recording, approve ApeAssist in System Settings, then relaunch if macOS asks."
         }
         return "Screenshot was not attached. \(error.localizedDescription)"
     }
@@ -350,7 +350,7 @@ private struct MediaPreviewSheet: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Generated media")
                         .font(.headline)
-                    Text("Preview, copy, or open the media from Lulo’s latest reply.")
+                    Text("Preview, copy, or open the media from ApeAssist’s latest reply.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

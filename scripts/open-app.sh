@@ -3,11 +3,11 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-APP_PATH="${APP_PATH:-$ROOT_DIR/dist/Lulo Clippy.app}"
+APP_PATH="${APP_PATH:-$ROOT_DIR/dist/ApeAssist.app}"
 
 if [[ ! -d "$APP_PATH" ]]; then
   echo "App bundle not found: $APP_PATH" >&2
-  echo "Run scripts/package-app.sh first, or set APP_PATH=/path/to/Lulo\ Clippy.app" >&2
+  echo "Run scripts/package-app.sh first, or set APP_PATH=/path/to/ApeAssist.app" >&2
   exit 1
 fi
 

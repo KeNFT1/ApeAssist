@@ -39,7 +39,7 @@ struct MenuBarControls: View {
 
         Divider()
 
-        Button("Quit Lulo Clippy") {
+        Button("Quit ApeAssist") {
             NSApp.terminate(nil)
         }
         .keyboardShortcut("q")

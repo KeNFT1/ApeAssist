@@ -68,6 +68,7 @@ struct FloatingBuddyView: View {
     @State private var initialMessageCount = 0
     @State private var draft = ""
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.openSettings) private var openSettings
 
     private var buddyAnimation: Animation? {
         reduceMotion ? nil : .spring(response: 0.30, dampingFraction: 0.82)
@@ -93,7 +94,7 @@ struct FloatingBuddyView: View {
                         .frame(width: 168, height: 154)
                         .animation(buddyAnimation, value: appState.assistantStatus)
 
-                        Text("Lulo")
+                        Text("ApeAssist")
                             .font(.headline)
                             .foregroundStyle(.primary)
                             .shadow(color: .white.opacity(0.8), radius: 2)
@@ -107,22 +108,38 @@ struct FloatingBuddyView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .help("Click Lulo to ask a quick question")
-                .accessibilityLabel("Floating Lulo desktop buddy. Click to ask a quick question.")
+                .help("Click ApeAssist to ask a quick question")
+                .accessibilityLabel("Floating ApeAssist desktop buddy. Click to ask a quick question.")
 
-                Button {
-                    NSApp.terminate(nil)
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 26, height: 26)
-                        .background(.regularMaterial.opacity(isHovering ? 0.86 : 0.18), in: Circle())
+                HStack(spacing: 6) {
+                    Button {
+                        NSApp.activate(ignoringOtherApps: true)
+                        openSettings()
+                    } label: {
+                        Image(systemName: "gearshape.fill")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 26, height: 26)
+                            .background(.regularMaterial.opacity(isHovering ? 0.86 : 0.18), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .help("Open ApeAssist Settings")
+                    .accessibilityLabel("Open ApeAssist Settings")
+
+                    Button {
+                        NSApp.terminate(nil)
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 26, height: 26)
+                            .background(.regularMaterial.opacity(isHovering ? 0.86 : 0.18), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .help("Quit ApeAssist")
+                    .accessibilityLabel("Quit ApeAssist")
                 }
-                .buttonStyle(.plain)
                 .opacity(isHovering ? 1 : 0.18)
-                .help("Quit Lulo Clippy")
-                .accessibilityLabel("Quit Lulo Clippy")
                 .padding(.top, 20)
                 .padding(.trailing, 18)
             }
@@ -184,7 +201,11 @@ struct FloatingBuddyView: View {
     }
 
     private func assistantSpeechBubble(_ text: String) -> some View {
-        HStack(alignment: .top, spacing: 0) {
+        let displayedText = appState.assistantStatus == .thinking ? "Working on it…" : text
+        let bubbleWidth = speechBubbleWidth(for: displayedText)
+        let bubbleMaxHeight = speechBubbleMaxHeight(for: displayedText)
+
+        return HStack(alignment: .top, spacing: 0) {
             BubbleTail()
                 .fill(.regularMaterial)
                 .frame(width: 18, height: 22)
@@ -207,16 +228,20 @@ struct FloatingBuddyView: View {
                     .accessibilityLabel("Hide speech bubble")
                 }
 
-                Text(appState.assistantStatus == .thinking ? "Working on it…" : text)
-                    .font(.callout)
-                    .foregroundStyle(.primary)
-                    .lineLimit(6)
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                ScrollView(.vertical) {
+                    Text(displayedText)
+                        .font(.callout)
+                        .foregroundStyle(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .scrollIndicators(.visible)
+                .frame(maxHeight: bubbleMaxHeight)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
-            .frame(width: 276, alignment: .leading)
+            .frame(width: bubbleWidth, alignment: .leading)
             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -226,13 +251,29 @@ struct FloatingBuddyView: View {
         }
         .frame(width: 320, alignment: .leading)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Lulo speech bubble")
+        .accessibilityLabel("ApeAssist speech bubble")
+    }
+
+    private func speechBubbleWidth(for text: String) -> CGFloat {
+        switch text.count {
+        case 0...38: 210
+        case 39...110: 252
+        default: 286
+        }
+    }
+
+    private func speechBubbleMaxHeight(for text: String) -> CGFloat {
+        switch text.count {
+        case 0...120: 120
+        case 121...420: 190
+        default: 240
+        }
     }
 
     private var miniChat: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
-                TextField("Ask Lulo…", text: $draft)
+                TextField("Ask ApeAssist…", text: $draft)
                     .textFieldStyle(.plain)
                     .onSubmit(sendMiniChat)
                     .disabled(bridge.isSending)
